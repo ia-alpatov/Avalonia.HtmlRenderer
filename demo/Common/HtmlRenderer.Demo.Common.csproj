@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="PerfSamples\1.Big table.htm" />
+    <EmbeddedResource Include="TestSamples\36.Emoji.htm" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Properties\Resources.resx">

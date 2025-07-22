@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Avalonia.Controls.Documents;
 using TheArtOfDev.HtmlRenderer.Adapters;
 using TheArtOfDev.HtmlRenderer.Adapters.Entities;
@@ -561,6 +562,41 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
             bool preserveSpaces = WhiteSpace == CssConstants.Pre || WhiteSpace == CssConstants.PreWrap;
             bool respoctNewline = preserveSpaces || WhiteSpace == CssConstants.PreLine;
             var text = _text.Span;
+
+            //Fix for emoji 😎
+            Dictionary<int, int> emojiRegion = new();
+            int[] textIndices = StringInfo.ParseCombiningCharacters(text.ToString());
+
+            if (textIndices.Length != text.Length)
+            {
+                if (textIndices.Length == 1)
+                {
+                    emojiRegion.Add(0, text.Length - 1);
+                }
+                else
+                {
+                    int skippedChars = 0;
+                    var previousChar = textIndices[0];
+                    foreach (var index in textIndices.Skip(1))
+                    {
+                        if (index > previousChar + 1)
+                        {
+                            emojiRegion.Add(previousChar, index - 1);
+                            skippedChars += index - 1 - previousChar;
+                        }
+
+                        previousChar = index;
+                    }
+                    
+                    //Add emoji at the end of a string
+                    if (skippedChars + textIndices.Length != text.Length)
+                    {
+                        emojiRegion.Add(textIndices.Last(),
+                            textIndices.Last() + (text.Length - textIndices.Last() - 1));
+                    }
+                }
+            }
+
             while (startIdx < text.Length)
             {
                 while (startIdx < text.Length && text[startIdx] == '\r')
@@ -569,28 +605,65 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
                 if (startIdx < text.Length)
                 {
                     var endIdx = startIdx;
+
+                    if (emojiRegion.Count > 0 && emojiRegion.ContainsKey(startIdx))
+                    {
+                        endIdx = emojiRegion[startIdx] + 1;
+
+                        var hasSpaceBefore = !preserveSpaces && (startIdx > 0 && _boxWords.Count == 0 &&
+                                                                 char.IsWhiteSpace(text[startIdx - 1]));
+                        var hasSpaceAfter =
+                            !preserveSpaces && (endIdx < text.Length && char.IsWhiteSpace(text[endIdx]));
+                        _boxWords.Add(new CssRectWord(this,
+                            HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(),
+                            hasSpaceBefore, hasSpaceAfter));
+                        startIdx = endIdx;
+                        continue;
+                    }
+
                     while (endIdx < text.Length && char.IsWhiteSpace(text[endIdx]) && text[endIdx] != '\n')
                         endIdx++;
 
                     if (endIdx > startIdx)
                     {
                         if (preserveSpaces)
-                            _boxWords.Add(new CssRectWord(this, HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(), false, false));
+                            _boxWords.Add(new CssRectWord(this,
+                                HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(),
+                                false, false));
                     }
                     else
                     {
                         endIdx = startIdx;
-                        while (endIdx < text.Length && !char.IsWhiteSpace(text[endIdx]) && text[endIdx] != '-' && WordBreak != CssConstants.BreakAll && !CommonUtils.IsAsianCharecter(text[endIdx]))
+                        while (endIdx < text.Length && !char.IsWhiteSpace(text[endIdx]) && text[endIdx] != '-' &&
+                               WordBreak != CssConstants.BreakAll && !CommonUtils.IsAsianCharecter(text[endIdx]))
                             endIdx++;
 
-                        if (endIdx < text.Length && (text[endIdx] == '-' || WordBreak == CssConstants.BreakAll || CommonUtils.IsAsianCharecter(text[endIdx])))
+                        if (endIdx < text.Length && (text[endIdx] == '-' || WordBreak == CssConstants.BreakAll ||
+                                                     CommonUtils.IsAsianCharecter(text[endIdx])))
                             endIdx++;
 
                         if (endIdx > startIdx)
                         {
-                            var hasSpaceBefore = !preserveSpaces && (startIdx > 0 && _boxWords.Count == 0 && char.IsWhiteSpace(text[startIdx - 1]));
-                            var hasSpaceAfter = !preserveSpaces && (endIdx < text.Length && char.IsWhiteSpace(text[endIdx]));
-                            _boxWords.Add(new CssRectWord(this, HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(), hasSpaceBefore, hasSpaceAfter));
+                            if (emojiRegion.Count > 0)
+                            {
+                                //If index between an emoji region, then shift index to the start
+                                foreach (var region in emojiRegion)
+                                {
+                                    if (region.Key >= startIdx && region.Key <= endIdx)
+                                    {
+                                        endIdx = region.Key;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            var hasSpaceBefore = !preserveSpaces && (startIdx > 0 && _boxWords.Count == 0 &&
+                                                                     char.IsWhiteSpace(text[startIdx - 1]));
+                            var hasSpaceAfter = !preserveSpaces &&
+                                                (endIdx < text.Length && char.IsWhiteSpace(text[endIdx]));
+                            _boxWords.Add(new CssRectWord(this,
+                                HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(),
+                                hasSpaceBefore, hasSpaceAfter));
                         }
                     }
 

@@ -12,6 +12,7 @@
 
 using System;
 using TheArtOfDev.HtmlRenderer.Adapters;
+using TheArtOfDev.HtmlRenderer.Core.Utils;
 
 namespace TheArtOfDev.HtmlRenderer.Core.Dom
 {
@@ -104,6 +105,15 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
             get { return _text; }
         }
 
+           
+        public bool IsEmoji { get; set; }
+
+        public string FontFamily
+        {
+            get { return IsEmoji ? CssConstants.DefaultEmojiFont : this.OwnerBox.FontFamily; }
+        }
+
+        
         /// <summary>
         /// Represents this word for debugging purposes
         /// </summary>

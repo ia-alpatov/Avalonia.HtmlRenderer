@@ -165,5 +165,10 @@ namespace TheArtOfDev.HtmlRenderer.Core.Utils
         /// Default font used for the generic 'serif' family
         /// </summary>
         public const string DefaultFont = "Segoe UI";
+        
+        /// <summary>
+        /// Default font used for the emoji family
+        /// </summary>
+        public const string DefaultEmojiFont = "Segoe UI Emoji";
     }
 }

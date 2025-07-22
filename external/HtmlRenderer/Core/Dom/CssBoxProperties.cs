@@ -1265,6 +1265,7 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
                     {
                         FontFamily = CssConstants.DefaultFont;
                     }
+
                     if (string.IsNullOrEmpty(FontSize))
                     {
                         FontSize = CssConstants.FontSize.ToString(CultureInfo.InvariantCulture) + "pt";
@@ -1277,7 +1278,8 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
                         st |= RFontStyle.Italic;
                     }
 
-                    if (FontWeight != CssConstants.Normal && FontWeight != CssConstants.Lighter && !string.IsNullOrEmpty(FontWeight) && FontWeight != CssConstants.Inherit)
+                    if (FontWeight != CssConstants.Normal && FontWeight != CssConstants.Lighter &&
+                        !string.IsNullOrEmpty(FontWeight) && FontWeight != CssConstants.Inherit)
                     {
                         st |= RFontStyle.Bold;
                     }
@@ -1329,8 +1331,10 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
 
                     _actualFont = GetCachedFont(FontFamily, fsize, st);
                 }
+
                 return _actualFont;
             }
+            set { _actualFont = value; }
         }
 
         protected abstract RFont GetCachedFont(string fontFamily, double fsize, RFontStyle st);

@@ -616,7 +616,7 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
                             !preserveSpaces && (endIdx < text.Length && char.IsWhiteSpace(text[endIdx]));
                         _boxWords.Add(new CssRectWord(this,
                             HtmlUtils.DecodeHtml(text.Slice(startIdx, endIdx - startIdx).ToString()).AsMemory(),
-                            hasSpaceBefore, hasSpaceAfter));
+                            hasSpaceBefore, hasSpaceAfter){ IsEmoji = true });
                         startIdx = endIdx;
                         continue;
                     }
@@ -813,8 +813,20 @@ namespace TheArtOfDev.HtmlRenderer.Core.Dom
 
                 if (Words.Count > 0)
                 {
+                    var defaultFont = FontFamily;
                     foreach (var boxWord in Words)
                     {
+                        
+                        ActualFont = null;
+                        if (boxWord is CssRectWord rectWord && rectWord.IsEmoji)
+                        {
+                            FontFamily = rectWord.FontFamily;
+                        }
+                        else
+                        {
+                            FontFamily = defaultFont;
+                        }
+                        
                         boxWord.Line = g.FormatLine(boxWord.Text, ActualFont);
                         var size = boxWord.Line.Size;
                         boxWord.Width = size.Width;
